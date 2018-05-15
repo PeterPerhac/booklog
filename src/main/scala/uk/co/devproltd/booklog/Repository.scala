@@ -11,7 +11,7 @@ import doobie.util.transactor.Transactor.Aux
 abstract class Repository[F[_] : Effect, T: Composite, ID: Meta](protected val tableName: String) {
 
   protected val transactor: Aux[F, Unit] =
-    Transactor.fromDriverManager[F]("org.postgresql.Driver", "jdbc:postgresql:booklog", "postgres", "")
+    Transactor.fromDriverManager[F]("org.postgresql.Driver", "jdbc:postgresql:booklog", "booklog", "booklog")
 
   def find(id: ID): F[Option[T]] =
     (fr"select * from" ++ fr(tableName) ++ fr"where id = $id").query[T].option.transact(transactor)

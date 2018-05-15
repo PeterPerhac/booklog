@@ -1,7 +1,8 @@
 version: '3'
 services:
-  postgres:
-    image: postgres:10.3
+  db:
+    image: postgres
+    restart: always
     ports:
      - "5432:5432"
     volumes:
@@ -9,6 +10,5 @@ services:
       - ./data/books.sql:/docker-entrypoint-initdb.d/2-load-books.sql
       - ./data/log_entries.sql:/docker-entrypoint-initdb.d/3-log_entries.sql
     environment:
-      - POSTGRES_USER=booklog
-      - POSTGRES_PASSWORD=booklog
-
+      POSTGRES_USER: booklog
+      POSTGRES_PASSWORD: booklog

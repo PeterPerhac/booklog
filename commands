@@ -1,3 +1,0 @@
-val f = () => Future{ scala.io.Source.fromURL("http://localhost:8080/hello/peter").mkString }
-Future.traverse(1 to 10000)(_ => f()).foreach(l => println(s"$l = ${l.size}"))
-
