@@ -1,6 +1,6 @@
 # Booklog (Readinglog rewrite)
 
-in theory the Postgres database could be created by simply running this simple command:
+in theory the Postgres database could be created by running this one command:
 
 ```bash
 docker-compose up &
