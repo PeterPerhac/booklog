@@ -3,17 +3,15 @@ package uk.co.devproltd.booklog
 import cats.effect.{Effect, IO}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import doobie.implicits._
 import fs2.StreamApp
 import io.circe.Json
+import io.circe.generic.JsonCodec
 import io.circe.syntax._
 import org.http4s.HttpService
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.blaze.BlazeBuilder
-import uk.co.devproltd.booklog.utils.CustomServiceSyntax
-
-import scala.language.higherKinds
+import uk.co.devproltd.booklog.repository.{BookRepository, LogEntryRepository}
 
 object BooklogServer extends StreamApp[IO] {
 
@@ -24,21 +22,13 @@ object BooklogServer extends StreamApp[IO] {
   def app[F[_]: Effect]: fs2.Stream[F, StreamApp.ExitCode] =
     BlazeBuilder[F]
       .bindHttp(8080, "0.0.0.0")
-      .mountService(new HelloService[F].service)
       .mountService(new BooklogService[F](new BookRepository[F], new LogEntryRepository[F]).service, "/")
       .serve
 
 }
 
-class HelloService[F[_]: Effect] extends Http4sDsl[F] {
-  val service: HttpService[F] = HttpService[F] {
-    case GET -> Root / "hello" / name =>
-      Ok(Json.obj(("message", Json.fromString(s"Hello, $name!"))))
-  }
-}
-
 class BooklogService[F[_]: Effect](bookRepository: BookRepository[F], logEntryRepository: LogEntryRepository[F])
-    extends Http4sDsl[F] with CustomServiceSyntax {
+    extends ServiceBase with Http4sDsl[F] {
   val service: HttpService[F] = HttpService[F] {
     case GET -> Root / "books" =>
       Ok(bookRepository.findAll().map(_.asJson))
@@ -51,19 +41,19 @@ class BooklogService[F[_]: Effect](bookRepository: BookRepository[F], logEntryRe
       for {
         _        <- logEntryRepository.deleteBookEntries(bookId)
         nDeleted <- bookRepository.delete(bookId)
-        res      <- Ok(s"$nDeleted books deleted".asJsonSuccess)
+        res      <- Ok(s"$nDeleted book deleted".asJsonSuccess)
       } yield res
   }
 }
 
-//irritating import must be here for the repositories to work
-import uk.co.devproltd.booklog.utils.CustomDoobieFluff._
+abstract class ServiceBase {
 
-class BookRepository[F[_]: Effect] extends Repository[F, Book, Int]("book")
+  @JsonCodec case class GenericResponse(message: String, success: Boolean)
 
-class LogEntryRepository[F[_]: Effect] extends Repository[F, LogEntry, Int]("log_entry") {
+  implicit class StringOps(string: String) {
+    def asJsonError: Json = GenericResponse(message = string, success = false).asJson
 
-  def deleteBookEntries(bookId: Int): F[Int] =
-    sql"delete from log_entry where book_id=$bookId".update.run.transact(transactor)
+    def asJsonSuccess: Json = GenericResponse(message = string, success = true).asJson
+  }
 
 }
