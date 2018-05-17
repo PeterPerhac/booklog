@@ -3,6 +3,9 @@ package uk.co.devproltd.booklog
 import cats.effect.{Effect, IO}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import doobie.util.transactor.Transactor
+import doobie.util.transactor.Transactor.Aux
+import doobie.implicits._
 import fs2.StreamApp
 import io.circe.Json
 import io.circe.generic.JsonCodec
@@ -18,35 +21,42 @@ object BooklogServer extends StreamApp[IO] {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   def stream(args: List[String], onShutdown: IO[Unit]): fs2.Stream[IO, StreamApp.ExitCode] = app[IO]
+  def tx[F[_]: Effect]: Aux[F, Unit] =
+    Transactor.fromDriverManager[F]("org.postgresql.Driver", "jdbc:postgresql:booklog", "booklog", "booklog")
 
   def app[F[_]: Effect]: fs2.Stream[F, StreamApp.ExitCode] =
     BlazeBuilder[F]
       .bindHttp(8080, "0.0.0.0")
-      .mountService(new BooklogService[F](new BookRepository[F], new LogEntryRepository[F]).service, "/")
+      .mountService(new BooklogService[F](new BookRepository[F], new LogEntryRepository[F], tx).service, "/")
       .serve
 
 }
 
-class BooklogService[F[_]: Effect](bookRepository: BookRepository[F], logEntryRepository: LogEntryRepository[F])
-    extends ServiceBase with Http4sDsl[F] {
+class BooklogService[F[_]: Effect](
+  bookRepository: BookRepository[F],
+  logEntryRepository: LogEntryRepository[F],
+  transactor: Transactor[F])
+    extends ServiceBase[F] {
+
   val service: HttpService[F] = HttpService[F] {
     case GET -> Root / "books" =>
-      Ok(bookRepository.findAll().map(_.asJson))
+      Ok(bookRepository.findAll.transact(transactor).compile.toList.map(_.asJson))
     case GET -> Root / "books" / IntVar(bookId) =>
       for {
-        lookupRes <- bookRepository.find(bookId.toInt)
+        lookupRes <- bookRepository.find(bookId.toInt).transact(transactor)
         res       <- lookupRes.fold(NotFound(s"Book ID=$bookId was not found".asJsonError))(book => Ok(book.asJson))
       } yield res
     case DELETE -> Root / "books" / IntVar(bookId) =>
-      for {
-        _        <- logEntryRepository.deleteBookEntries(bookId)
-        nDeleted <- bookRepository.delete(bookId)
-        res      <- Ok(s"$nDeleted book deleted".asJsonSuccess)
-      } yield res
+      val delete = for {
+        _ <- logEntryRepository.deleteBookEntries(bookId)
+        n <- bookRepository.delete(bookId)
+      } yield n
+      Ok(delete.transact(transactor).map(n => s"$n book deleted".asJsonSuccess))
   }
+
 }
 
-abstract class ServiceBase {
+abstract class ServiceBase[F[_]: Effect] extends Http4sDsl[F] {
 
   @JsonCodec case class GenericResponse(message: String, success: Boolean)
 
