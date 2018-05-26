@@ -4,8 +4,8 @@ import cats.effect.IO
 import org.http4s._
 import org.http4s.implicits._
 import org.specs2.matcher.MatchResult
-
-class HelloWorldSpec extends org.specs2.mutable.Specification {
+import org.http4s.Method._
+class BooklogServerSpec extends org.specs2.mutable.Specification {
 
   "HelloWorld" >> {
     "return 200" >> {
@@ -17,7 +17,7 @@ class HelloWorldSpec extends org.specs2.mutable.Specification {
   }
 
   private[this] val retHelloWorld: Response[IO] = {
-    val getHW = Request[IO](Method.GET, Uri.uri("/hello/world"))
+    val getHW = Request[IO](GET, Uri.uri("/hello/world"))
     ???
   }
 

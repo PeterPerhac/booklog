@@ -1,6 +1,5 @@
 package uk.co.devproltd.booklog.repository
 
-import cats.effect.Effect
 import doobie.free.connection.ConnectionIO
 import doobie.implicits._
 import doobie.util.composite.Composite
@@ -8,7 +7,7 @@ import doobie.util.fragment.Fragment.{const => fr}
 import doobie.util.meta.Meta
 import uk.co.devproltd.booklog.{Book, LogEntry}
 
-sealed abstract class SimpleRepository[F[_]: Effect, T: Composite, ID: Meta](
+sealed abstract class SimpleRepository[T: Composite, ID: Meta](
   protected val tableName: String,
   protected val idColumnName: String) {
 
@@ -23,9 +22,9 @@ sealed abstract class SimpleRepository[F[_]: Effect, T: Composite, ID: Meta](
 
 }
 
-class BookRepository[F[_]: Effect] extends SimpleRepository[F, Book, Int]("book", "id")
+class BookRepository extends SimpleRepository[Book, Int]("book", "id")
 
-class LogEntryRepository[F[_]: Effect] extends SimpleRepository[F, LogEntry, Int]("log_entry", "id") {
+class LogEntryRepository extends SimpleRepository[LogEntry, Int]("log_entry", "id") {
 
   def deleteBookEntries(bookId: Int): ConnectionIO[Int] =
     sql"delete from log_entry where book_id=$bookId".update.run

@@ -3,9 +3,9 @@ package uk.co.devproltd.booklog
 import cats.effect.{Effect, IO}
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import doobie.implicits._
 import doobie.util.transactor.Transactor
 import doobie.util.transactor.Transactor.Aux
-import doobie.implicits._
 import fs2.StreamApp
 import io.circe.Json
 import io.circe.generic.JsonCodec
@@ -15,6 +15,8 @@ import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.blaze.BlazeBuilder
 import uk.co.devproltd.booklog.repository.{BookRepository, LogEntryRepository}
+
+import scala.language.higherKinds
 
 object BooklogServer extends StreamApp[IO] {
 
@@ -27,14 +29,14 @@ object BooklogServer extends StreamApp[IO] {
   def app[F[_]: Effect]: fs2.Stream[F, StreamApp.ExitCode] =
     BlazeBuilder[F]
       .bindHttp(8080, "0.0.0.0")
-      .mountService(new BooklogService[F](new BookRepository[F], new LogEntryRepository[F], tx).service, "/")
+      .mountService(new BooklogService[F](new BookRepository, new LogEntryRepository, tx).service, "/")
       .serve
 
 }
 
 class BooklogService[F[_]: Effect](
-  bookRepository: BookRepository[F],
-  logEntryRepository: LogEntryRepository[F],
+  bookRepository: BookRepository,
+  logEntryRepository: LogEntryRepository,
   transactor: Transactor[F])
     extends ServiceBase[F] {
 
