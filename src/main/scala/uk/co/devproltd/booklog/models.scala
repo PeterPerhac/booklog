@@ -6,7 +6,7 @@ import io.circe.generic.JsonCodec
 import io.circe.java8.time._
 
 @JsonCodec case class Book(
-  id: Int,
+  id: Book.Id,
   title: String,
   author: String,
   pages: Int,
@@ -16,4 +16,8 @@ import io.circe.java8.time._
   addedDatetime: LocalDateTime,
   deactivatedDatetime: Option[LocalDateTime])
 
-@JsonCodec case class LogEntry(bookId: Int, page: Int, timestamp: LocalDateTime)
+object Book {
+  type Id = Int
+}
+
+@JsonCodec case class LogEntry(bookId: Book.Id, page: Int, timestamp: LocalDateTime)

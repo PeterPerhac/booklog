@@ -29,31 +29,38 @@ object BooklogServer extends StreamApp[IO] {
   def app[F[_]: Effect]: fs2.Stream[F, StreamApp.ExitCode] =
     BlazeBuilder[F]
       .bindHttp(8080, "0.0.0.0")
-      .mountService(new BooklogService[F](new BookRepository, new LogEntryRepository, tx).service, "/")
+      .mountService(new BooklogService[F](new BookRepository, new LogEntryRepository, tx).bookService, "/")
+      .mountService(new BooklogEntryService[F](new LogEntryRepository, tx).logEntryService, "/books")
       .serve
 
 }
 
-class BooklogService[F[_]: Effect](
-  bookRepository: BookRepository,
-  logEntryRepository: LogEntryRepository,
-  transactor: Transactor[F])
+class BooklogService[F[_]: Effect](bookRepo: BookRepository, entryRepo: LogEntryRepository, transactor: Transactor[F])
     extends ServiceBase[F] {
 
-  val service: HttpService[F] = HttpService[F] {
+  val bookService: HttpService[F] = HttpService[F] {
     case GET -> Root / "books" =>
-      Ok(bookRepository.findAll.transact(transactor).compile.toList.map(_.asJson))
+      Ok(bookRepo.findAll.transact(transactor).compile.toList.map(_.asJson))
     case GET -> Root / "books" / IntVar(bookId) =>
       for {
-        lookupRes <- bookRepository.find(bookId.toInt).transact(transactor)
+        lookupRes <- bookRepo.find(bookId.toInt).transact(transactor)
         res       <- lookupRes.fold(NotFound(s"Book ID=$bookId was not found".asJsonError))(book => Ok(book.asJson))
       } yield res
     case DELETE -> Root / "books" / IntVar(bookId) =>
       val delete = for {
-        _ <- logEntryRepository.deleteBookEntries(bookId)
-        n <- bookRepository.delete(bookId)
+        _ <- entryRepo.deleteBookEntries(bookId)
+        n <- bookRepo.delete(bookId)
       } yield n
       Ok(delete.transact(transactor).map(n => s"$n book deleted".asJsonSuccess))
+  }
+}
+
+class BooklogEntryService[F[_]: Effect](logEntryRepository: LogEntryRepository, transactor: Transactor[F])
+    extends ServiceBase[F] {
+
+  val logEntryService: HttpService[F] = HttpService[F] {
+    case GET -> Root / IntVar(bookId) / "entries" =>
+      Ok(logEntryRepository.findByBookId(bookId).transact(transactor).compile.toList.map(_.asJson))
   }
 
 }

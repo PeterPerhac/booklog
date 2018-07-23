@@ -1,7 +1,7 @@
 package uk.co.devproltd.booklog
 
-import java.time.{Instant, LocalDateTime}
 import java.time.ZoneOffset.UTC
+import java.time.{Instant, LocalDateTime}
 
 import doobie.util.meta.Meta
 
