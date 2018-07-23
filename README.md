@@ -8,6 +8,9 @@ The Postgres database can be created and pre-loaded with some data by running th
 
 ```bash
 docker-compose up &
+#later to stop/start
+docker-compose stop
+docker-compose start
 ```
 
 date started working on this thing: 2018-05-12
