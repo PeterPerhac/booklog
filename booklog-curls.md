@@ -14,8 +14,8 @@ curl http://localhost:8080/books/110/entries | jq .
 ### !!! - must not have verbose output enabled when piping out to jq tool
 
 - verbose
-curl -vXPOST -H "Content-Type: application/json" -H "Accept: application/json" --data '{"title": "Book Title4", "author": "Book Author2", "pages": 100, "pagesRead": 0, "active": true, "completed": false, "addedDatetime": "2017-08-18T13:00:57"}' http://localhost:8080/books
+curl -v -H "Content-Type: application/json" -H "Accept: application/json" --data '{"title": "Book Title4", "author": "Book Author2", "pages": 100 }' http://localhost:8080/books
 
 - non-verbose / silent
-curl -XPOST -H "Content-Type: application/json" -H "Accept: application/json" --data '{"title": "Book Title5", "author": "Book Author2", "pages": 100, "pagesRead": 0, "active": true, "completed": false, "addedDatetime": "2017-08-18T13:00:57"}' http://localhost:8080/books | jq .
+curl -XPOST -H "Content-Type: application/json" -H "Accept: application/json" --data '{"title": "FooBar", "author": "Book Author3", "pages": 100 }' http://localhost:8080/books | jq .
 

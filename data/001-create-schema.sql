@@ -18,3 +18,5 @@ CREATE TABLE log_entry (
   PRIMARY KEY (book_id, page)
 );
 
+ALTER SEQUENCE public.book_id_seq RESTART WITH 1000;
+

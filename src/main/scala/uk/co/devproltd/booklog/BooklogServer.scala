@@ -49,13 +49,13 @@ class BooklogService[F[_]: Effect](bookRepo: BookRepository, entryRepo: LogEntry
       } yield res
     case req @ POST -> Root / "books" =>
       for {
-        book          <- req.decodeJson[Book]
+        bookPost <- req.decodeJson[BookPost]
+        book = bookPost.toBook
         createdBookId <- bookRepo.createBook(book).transact(transactor)
         res <- createdBookId.fold(
-          err => Conflict(s"${err.message} - book title: ${book.title}, author: ${book.author}".asJsonError),
-          resId => Created(
-                book.copy(id = Some(resId)).asJson,
-                Location(Uri.unsafeFromString(s"/books/$createdBookId"))))
+                err => Conflict(s"${err.message} - book title: ${book.title}, author: ${book.author}".asJsonError),
+                bookId => Created(book.withId(bookId).asJson, Location(Uri.unsafeFromString(s"/books/$bookId")))
+              )
       } yield res
     case DELETE -> Root / "books" / IntVar(bookId) =>
       val delete = for {
@@ -66,12 +66,12 @@ class BooklogService[F[_]: Effect](bookRepo: BookRepository, entryRepo: LogEntry
   }
 }
 
-class BooklogEntryService[F[_]: Effect](logEntryRepository: LogEntryRepository, transactor: Transactor[F])
+class BooklogEntryService[F[_]: Effect](entryRepo: LogEntryRepository, transactor: Transactor[F])
     extends ServiceBase[F] {
 
   val logEntryService: HttpService[F] = HttpService[F] {
     case GET -> Root / IntVar(bookId) / "entries" =>
-      Ok(logEntryRepository.findByBookId(bookId).transact(transactor).compile.toList.map(_.asJson))
+      Ok(entryRepo.findByBookId(bookId).transact(transactor).compile.toList.map(_.asJson))
   }
 
 }

@@ -5,7 +5,7 @@ import doobie.implicits._
 import doobie.util.composite.Composite
 import doobie.util.fragment.Fragment.{const => fr}
 import doobie.util.meta.Meta
-import uk.co.devproltd.booklog.{Book, LogEntry}
+import uk.co.devproltd.booklog.{Book, BookWithId, LogEntry}
 
 sealed abstract class SimpleRepository[T: Composite, ID: Meta](
   protected val tableName: String,
@@ -24,9 +24,9 @@ sealed abstract class SimpleRepository[T: Composite, ID: Meta](
     (fr"delete from" ++ fr(tableName) ++ fr"where " ++ fr(idColumnName) ++ fr"=$id").update.run
 }
 
-class BookRepository extends SimpleRepository[Book, Int]("book", "id") {
+class BookRepository extends SimpleRepository[BookWithId, Int]("book", "id") {
   def createBook(book: Book): ConnectionIO[Either[ResourceConflict, Book.Id]] =
-    sql"INSERT INTO book (title, author, added_datetime, deactivated_datetime) VALUES (${book.title}, ${book.author}, ${book.addedDatetime}, ${book.deactivatedDatetime})".update
+    sql"INSERT INTO book (title, author, pages, pages_read, active, completed, added_datetime) VALUES (${book.title}, ${book.author}, ${book.pages}, ${book.pagesRead}, ${book.active}, ${book.completed}, ${book.addedDatetime})".update
       .withUniqueGeneratedKeys[Book.Id]("id")
       .attemptSomeSqlState {
         case doobie.postgres.sqlstate.class23.UNIQUE_VIOLATION => ResourceExists

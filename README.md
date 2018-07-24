@@ -13,4 +13,16 @@ docker-compose stop
 docker-compose start
 ```
 
+To connect to local PostgreSQL database, use the `./connect-to-db.sh` script, using the default password "booklog".
+
+
+to reload sample data from included script in data folder, provided you launched psql client from project root directory, use this command:
+
+```
+\i data/002-load-data.sql
+```
+
+exit psql by pressing Ctrl+D
+
 date started working on this thing: 2018-05-12
+
