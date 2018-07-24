@@ -10,10 +10,11 @@ import fs2.StreamApp
 import io.circe.Json
 import io.circe.generic.JsonCodec
 import io.circe.syntax._
-import org.http4s.HttpService
 import org.http4s.circe._
 import org.http4s.dsl.Http4sDsl
+import org.http4s.headers.Location
 import org.http4s.server.blaze.BlazeBuilder
+import org.http4s.{HttpService, Uri}
 import uk.co.devproltd.booklog.repository.{BookRepository, LogEntryRepository}
 
 import scala.language.higherKinds
@@ -45,6 +46,16 @@ class BooklogService[F[_]: Effect](bookRepo: BookRepository, entryRepo: LogEntry
       for {
         lookupRes <- bookRepo.find(bookId.toInt).transact(transactor)
         res       <- lookupRes.fold(NotFound(s"Book ID=$bookId was not found".asJsonError))(book => Ok(book.asJson))
+      } yield res
+    case req @ POST -> Root / "books" =>
+      for {
+        book          <- req.decodeJson[Book]
+        createdBookId <- bookRepo.createBook(book).transact(transactor)
+        res <- createdBookId.fold(
+          err => Conflict(s"${err.message} - book title: ${book.title}, author: ${book.author}".asJsonError),
+          resId => Created(
+                book.copy(id = Some(resId)).asJson,
+                Location(Uri.unsafeFromString(s"/books/$createdBookId"))))
       } yield res
     case DELETE -> Root / "books" / IntVar(bookId) =>
       val delete = for {

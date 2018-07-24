@@ -11,6 +11,9 @@ sealed abstract class SimpleRepository[T: Composite, ID: Meta](
   protected val tableName: String,
   protected val idColumnName: String) {
 
+  sealed abstract class ResourceConflict(val message: String)
+  case object ResourceExists extends ResourceConflict("Resource already exists")
+
   def findAll: fs2.Stream[ConnectionIO, T] =
     (fr"select * from" ++ fr(tableName)).query[T].stream
 
@@ -21,7 +24,14 @@ sealed abstract class SimpleRepository[T: Composite, ID: Meta](
     (fr"delete from" ++ fr(tableName) ++ fr"where " ++ fr(idColumnName) ++ fr"=$id").update.run
 }
 
-class BookRepository extends SimpleRepository[Book, Int]("book", "id")
+class BookRepository extends SimpleRepository[Book, Int]("book", "id") {
+  def createBook(book: Book): ConnectionIO[Either[ResourceConflict, Book.Id]] =
+    sql"INSERT INTO book (title, author, added_datetime, deactivated_datetime) VALUES (${book.title}, ${book.author}, ${book.addedDatetime}, ${book.deactivatedDatetime})".update
+      .withUniqueGeneratedKeys[Book.Id]("id")
+      .attemptSomeSqlState {
+        case doobie.postgres.sqlstate.class23.UNIQUE_VIOLATION => ResourceExists
+      }
+}
 
 class LogEntryRepository extends SimpleRepository[LogEntry, Int]("log_entry", "id") {
 

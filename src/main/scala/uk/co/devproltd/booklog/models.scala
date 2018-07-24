@@ -6,7 +6,7 @@ import io.circe.generic.JsonCodec
 import io.circe.java8.time._
 
 @JsonCodec case class Book(
-  id: Book.Id,
+  id: Option[Book.Id],
   title: String,
   author: String,
   pages: Int,
