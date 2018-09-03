@@ -31,6 +31,7 @@ case class Book(
 object Book {
   type Id = Int
 }
+
 @JsonCodec case class BookPost(
   title: String,
   author: String,

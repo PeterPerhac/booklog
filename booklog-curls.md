@@ -3,10 +3,10 @@
 ## GET PLURAL
 curl http://localhost:8080/books | jq .
 ## GET SINGULAR
-curl http://localhost:8080/books/6 | jq .
+curl http://localhost:8080/books/1004 | jq .
 curl http://localhost:8080/books/109 | jq .
 ## DELETE
-curl -XDELETE http://localhost:8080/books/109 | jq .
+curl -XDELETE http://localhost:8080/books/1001 | jq .
 ## GET ENTRIES PLURAL
 curl http://localhost:8080/books/110/entries | jq .
 
